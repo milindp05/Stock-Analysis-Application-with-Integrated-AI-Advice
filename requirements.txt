@@ -1,0 +1,6 @@
+streamlit
+yfinance
+openai
+matplotlib
+ta
+pandas
