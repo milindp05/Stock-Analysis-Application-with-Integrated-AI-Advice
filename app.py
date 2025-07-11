@@ -4,12 +4,72 @@ import ta
 from stock_analysis import analyze_stock
 from ai_advisor import get_advice
 from news_fetcher import get_stock_news
+import hashlib
 
-# Initialize watchlist in session state 
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def verify_password(input_password, stored_hash):
+    return hash_password(input_password) == stored_hash
+
+# Simulated user database
+if "users" not in st.session_state:
+    st.session_state.users = {
+        "admin": hash_password("adminpass")
+    }
+
+# Auth status
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+if "user" not in st.session_state:
+    st.session_state.user = None
+
+with st.sidebar:
+    if not st.session_state.authenticated:
+        st.markdown("### 🔐 Login / Register")
+
+        login_tab, register_tab = st.tabs(["Login", "Register"])
+
+        with login_tab:
+            username = st.text_input("Username", key="login_user")
+            password = st.text_input("Password", type="password", key="login_pass")
+            if st.button("Login"):
+                if username in st.session_state.users and verify_password(password, st.session_state.users[username]):
+                    st.session_state.authenticated = True
+                    st.session_state.user = username
+                    st.success(f"✅ Welcome {username}")
+        
+                    st.success("✅ Welcome!")
+                    st.rerun()
+
+                else:
+                    st.error("❌ Invalid credentials")
+
+        with register_tab:
+            new_user = st.text_input("New Username", key="new_user")
+            new_pass = st.text_input("New Password", type="password", key="new_pass")
+            if st.button("Create Account"):
+                if new_user in st.session_state.users:
+                    st.warning("User already exists.")
+                elif new_user and new_pass:
+                    st.session_state.users[new_user] = hash_password(new_pass)
+                    st.success("Account created. You can now log in.")
+                else:
+                    st.warning("Please fill both fields.")
+
+    else:
+        st.markdown(f"👤 Logged in as `{st.session_state.user}`")
+        if st.button("Logout"):
+            st.session_state.authenticated = False
+            st.session_state.user = None
+            st.rerun()
+
+    
+ # Initialize watchlist in session state 
 if "watchlist" not in st.session_state:
     st.session_state.watchlist = []
 
-st.title("📈 Stock Data")
+st.title("📈 Stock Application")
 
 #  tabs
 tabs = st.tabs(["Search", "Watchlist", "News"])
@@ -59,7 +119,7 @@ with tabs[0]:
                 
 
         except Exception as e:
-            st.error(f"Error: No stock found")
+            st.error(f"Error: {e}")
 
 
 with tabs[1]:
@@ -90,14 +150,18 @@ with tabs[2]:
     news_ticker = st.text_input("Enter stock ticker to get recent news:", value="AAPL")
 
     if news_ticker:
-        news_items = get_stock_news(news_ticker)                                                                                                                                                                                                                                                   
+        news_items = get_stock_news(news_ticker)
         if not news_items:
             st.warning("No news found or API issue.")
         else:
             for article in news_items:
-                st.subheader(article["title"])
-                st.write(f"Source: {article['source']}")
-                st.write(f"Published: {article['publishedAt']}")
-                st.markdown(f"[Read more]({article['url']})")
+                st.subheader(article.get("title", "No title"))
+                if article.get("image"):
+                    st.image(article["image"], use_container_width=True)
+                if article.get("description"):
+                    st.write(article["description"])
+                st.write(f"Source: {article.get('source', 'Unknown')} — Published: {article.get('publishedAt', 'N/A')}")
+                st.markdown(f"[Read more]({article.get('url', '#')})")
                 st.markdown("---")
+
 

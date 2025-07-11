@@ -4,23 +4,27 @@ from dotenv import load_dotenv
 
 load_dotenv()  # Load variables from .env
 
-api_key = os.getenv("NEWS_API_KEY")
 
 
+API_KEY = os.getenv("NEWS_API_KEY")  # Store this safely!
 
-
-def get_stock_news(ticker):
-    url = f"https://newsapi.org/v2/everything?q={ticker}&sortBy=publishedAt&language=en&apiKey={api_key}"
+def get_stock_news(ticker, max_results=5):
+    url = f"https://newsdata.io/api/1/news?apikey={API_KEY}&q={ticker}&language=en&category=business"
     response = requests.get(url)
     data = response.json()
-    
-    if data.get("status") != "ok":
+
+    if "results" not in data:
         return []
 
-    articles = data.get("articles", [])[:5]  # return top 5 articles
+    articles = data["results"][:max_results]
     return [{
-        "title": article["title"],
-        "url": article["url"],
-        "source": article["source"]["name"],
-        "publishedAt": article["publishedAt"]
+        "title": article.get("title"),
+        "url": article.get("link"),
+        "source": article.get("source_id"),
+        "publishedAt": article.get("pubDate", "")[:10],
+        "description": article.get("description"),
+        "image": article.get("image_url")
     } for article in articles]
+
+
+

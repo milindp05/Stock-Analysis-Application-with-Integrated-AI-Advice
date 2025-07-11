@@ -1,6 +1,8 @@
 streamlit
 yfinance
-openai
-matplotlib
 ta
 pandas
+requests
+openai
+python-dotenv
+streamlit-authenticator
