@@ -9,11 +9,11 @@ def hash_password(password):
 def register_user(username, password):
     doc_ref = db.collection("users").document(username)
     if doc_ref.get().exists:
-        return False  # user already exists
+        return False  
     hashed = hash_password(password)
     doc_ref.set({
         "password": hashed,
-        "watchlist": []  # initialize empty watchlist
+        "watchlist": []  # initialize empty watchlist for new user
     })
     return True
 

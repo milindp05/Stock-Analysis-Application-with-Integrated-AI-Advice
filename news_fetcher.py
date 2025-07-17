@@ -2,11 +2,11 @@ import requests
 import os
 from dotenv import load_dotenv
 
-load_dotenv()  # Load variables from .env
+load_dotenv()  
 
 
 
-API_KEY = os.getenv("NEWS_API_KEY")  # Store this safely!
+API_KEY = os.getenv("NEWS_API_KEY")  
 
 def get_stock_news(ticker, max_results=5):
     url = f"https://newsdata.io/api/1/news?apikey={API_KEY}&q={ticker}&language=en&category=business"
