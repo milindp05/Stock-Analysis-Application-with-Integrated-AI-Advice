@@ -4,21 +4,11 @@ import ta
 from stock_analysis import analyze_stock
 from ai_advisor import get_advice
 from news_fetcher import get_stock_news
-import hashlib
+from auth import register_user, verify_user
+from firebase_helpers import get_user_watchlist, save_user_watchlist
 
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
 
-def verify_password(input_password, stored_hash):
-    return hash_password(input_password) == stored_hash
-
-# Simulated user database
-if "users" not in st.session_state:
-    st.session_state.users = {
-        "admin": hash_password("adminpass")
-    }
-
-# Auth status
+# Authentication status
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if "user" not in st.session_state:
@@ -34,9 +24,11 @@ with st.sidebar:
             username = st.text_input("Username", key="login_user")
             password = st.text_input("Password", type="password", key="login_pass")
             if st.button("Login"):
-                if username in st.session_state.users and verify_password(password, st.session_state.users[username]):
+                if verify_user(username, password): #checks if user exists and password is correct in firebase
+                    
                     st.session_state.authenticated = True
                     st.session_state.user = username
+                    st.session_state.watchlist = get_user_watchlist(username)
                     st.success(f"✅ Welcome {username}")
         
                     st.success("✅ Welcome!")
@@ -49,23 +41,22 @@ with st.sidebar:
             new_user = st.text_input("New Username", key="new_user")
             new_pass = st.text_input("New Password", type="password", key="new_pass")
             if st.button("Create Account"):
-                if new_user in st.session_state.users:
-                    st.warning("User already exists.")
-                elif new_user and new_pass:
-                    st.session_state.users[new_user] = hash_password(new_pass)
-                    st.success("Account created. You can now log in.")
-                else:
-                    st.warning("Please fill both fields.")
+                if register_user(new_user, new_pass):
+                    st.success("✅ Account created. You can now log in.")
+            else:
+                st.warning("User already exists.")
 
-    else:
+
+    if st.session_state.authenticated:
         st.markdown(f"👤 Logged in as `{st.session_state.user}`")
         if st.button("Logout"):
             st.session_state.authenticated = False
             st.session_state.user = None
+            st.session_state.watchlist = []
             st.rerun()
 
     
- # Initialize watchlist in session state 
+ # Initialize 'watchlist' list in session state 
 if "watchlist" not in st.session_state:
     st.session_state.watchlist = []
 
@@ -82,7 +73,7 @@ with tabs[0]:
     if ticker_input:
         try:
             ticker = yf.Ticker(ticker_input)
-            df = ticker.history(period="max")
+            df = ticker.history(period="1y")
 
             if df.empty:
                 st.error("No data found.")
@@ -100,7 +91,8 @@ with tabs[0]:
                 # WATCHLIST BUTTON
                 if st.button("➕ Add to Watchlist"):
                     if ticker_input not in st.session_state.watchlist:
-                        st.session_state.watchlist.append(ticker_input)
+                        save_user_watchlist(st.session_state.user, st.session_state.watchlist)
+
                         st.success(f"{ticker_input} added to your watchlist!")
                     else:
                         st.info(f"{ticker_input} is already in your watchlist.")
